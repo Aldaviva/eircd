@@ -1,4 +1,4 @@
--module (eircd).
+-module (eircd_1).
 -compile ([debug_info]).
 -export ([start/0, dump_users/1]).
 
@@ -281,7 +281,6 @@ channel_manager(Channels) ->
 					NewChannel_ = dict:from_list([
 						{name, Name},
 						{creation_date, calendar:universal_time()},
-						{modes, []},
 						{topic, ""},
 						{topic_date, none},
 						{users, sets:new()},

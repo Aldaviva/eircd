@@ -1,3 +1,6 @@
 syntax: glob
 
 *.beam
+target/
+*.sublime-*
+erl_crash.dump
