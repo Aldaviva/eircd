@@ -3,18 +3,51 @@
 -include("constants.hrl").
 
 create(Socket, Nickname) ->
-	%make a new user record and set some fields, but don't persist it, just return it.
-	%starts the user's actor process, registering PID in table and listening for messages
-	unimplemented.
+	Process = spawn(fun()-> run(empty) end),
+	State = #user{
+		socket = Socket,
+		nickname = Nickname,
+		process = Process
+	},
+	save(State),
+	ets:insert(users, {Socket, Process}),
+	State.
 
 find(Socket) ->
-	%look up and return user based on the primary key (socket)
-	unimplemented.
+	Matches = ets:lookup(users, Socket),
+	case Matches of
+		[Process] -> 
+			Process ! {self(), read},
+			receive
+				User ->
+					User
+			end;
+		[] ->
+			none
+	end.
 
 save(User) ->
-	%write user into state, don't return it
-	unimplemented.
+	Process = get_user_process(User),
+	Process ! {self(), save, User},
+	receive ok -> ok end.
 
 delete(User) ->
-	%stop process and remote PID from table
-	unimplemented.
+	Process = get_user_process(User),
+	Process ! {self(), delete},
+	ets:delete(users, State#user.socket),
+	receive ok -> ok end.
+
+run(State) ->
+	receive
+		{Invoker, read} ->
+			Invoker ! State,
+			run(State);
+		{Invoker, save, NewState} ->
+			Invoker ! ok,
+			run(NewState);
+		{Invoker, delete} ->
+			Invoker ! ok; %don't recur
+	end.
+
+get_user_process(User) ->
+	User#user.process.

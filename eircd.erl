@@ -14,7 +14,6 @@ create_users_table() ->
 	ets:new(users, [
 		public,
 		named_table,
-		{keypos, 2},
 		{read_concurrency, true}
 	]).
 
@@ -22,7 +21,6 @@ create_channels_table() ->
 	ets:new(channels, [
 		public,
 		named_table,
-		{keypos, 2},
 		{read_concurrency, true}
 	]).
 
