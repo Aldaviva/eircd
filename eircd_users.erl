@@ -1,6 +1,6 @@
--module(user).
--export([create/2, find/1, save/1, delete/1]).
--include("constants.hrl").
+-module(eircd_users).
+-export([create/2, find_by_socket/1, find_by_nickname/1, save/1, delete/1]).
+-include("common.hrl").
 
 create(Socket, Nickname) ->
 	Process = spawn(fun()-> run(empty) end),
@@ -10,13 +10,26 @@ create(Socket, Nickname) ->
 		process = Process
 	},
 	save(State),
-	ets:insert(users, {Socket, Process}),
+	ets:insert(users, [{Socket, Process, Nickname}]),
 	State.
 
-find(Socket) ->
+find_by_socket(Socket) ->
 	Matches = ets:lookup(users, Socket),
 	case Matches of
-		[Process] -> 
+		[{Socket, Process, _}] -> 
+			Process ! {self(), read},
+			receive
+				User ->
+					User
+			end;
+		[] ->
+			none
+	end.
+
+find_by_nickname(Nickname) ->
+	Processes = ets:match(users, {'_', '$0', Nickname}),
+	case Processes of
+		[Process] ->
 			Process ! {self(), read},
 			receive
 				User ->
@@ -34,7 +47,7 @@ save(User) ->
 delete(User) ->
 	Process = get_user_process(User),
 	Process ! {self(), delete},
-	ets:delete(users, State#user.socket),
+	ets:delete(users, User#user.socket),
 	receive ok -> ok end.
 
 run(State) ->
@@ -46,7 +59,7 @@ run(State) ->
 			Invoker ! ok,
 			run(NewState);
 		{Invoker, delete} ->
-			Invoker ! ok; %don't recur
+			Invoker ! ok
 	end.
 
 get_user_process(User) ->

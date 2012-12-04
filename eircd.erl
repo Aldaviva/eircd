@@ -1,14 +1,17 @@
 -module(eircd).
 -export([start/0, start/1]).
--include("constants.hrl").
+-include("common.hrl").
 
 start() ->
-	start(6667).
-start(Port) ->
+	start("6667"). %cli args are always strings
+start(PortStr) ->
 	create_users_table(),
 	create_channels_table(),
-	start_listener(Port),
-	ok.
+	start_listener(list_to_integer(PortStr)),
+	receive
+		quit ->
+			ok
+	end.
 
 create_users_table() ->
 	ets:new(users, [
@@ -25,4 +28,4 @@ create_channels_table() ->
 	]).
 
 start_listener(Port) ->
-	spawn_link(listener, listen, [Port]).
+	spawn_link(eircd_listener, listen, [Port]).

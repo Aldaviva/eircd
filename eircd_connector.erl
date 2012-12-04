@@ -1,6 +1,6 @@
--module(connector).
--export([handle_connection/1, send_server_message/3, send_user_messag/3]).
--include("constants.hrl").
+-module(eircd_connector).
+-export([handle_connection/1, send_server_message/3, send_user_message/3]).
+-include("common.hrl").
 
 handle_connection(Socket) ->
 	inet:setopts(Socket, [{active, once}]),
@@ -17,7 +17,7 @@ handle_connection(Socket) ->
 	end.
 
 get_user_from_socket(Socket) ->
-	user:find(Socket).
+	eircd_users:find_by_socket(Socket).
 
 handle_requests(Requests, Socket) ->
 	[handle_request(Request, Socket) || Request <- Requests].
@@ -31,11 +31,11 @@ handle_request(Request, Socket) ->
 		_ ->
 			get_user_from_socket(Socket)
 	end,
-	commands:handle_command(Command, User, ArgStr).
+	eircd_commands:handle_command(Command, User, ArgStr).
 
 delete_user(Socket) ->
 	User = get_user_from_socket(Socket),
-	user:delete(User).
+	eircd_users:delete(User).
 
 parse_command(Request) ->
 	string:to_upper(string:sub_word(Request, 1)).
@@ -54,7 +54,7 @@ send(Socket, Message) ->
 send_server_message(User, Code, Message) ->
 	Socket = User#user.socket,
 	Nickname = User#user.nickname,
-	CodeStr = string:right(integer_to_list(Code), 3, $0)
+	CodeStr = string:right(integer_to_list(Code), 3, $0),
 	Payload = ":"++?SERVER_HOSTNAME++" "++CodeStr++" "++Nickname++" "++Message,
 	send(Socket, Payload).
 

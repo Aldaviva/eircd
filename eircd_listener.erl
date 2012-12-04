@@ -1,4 +1,4 @@
--module(listener).
+-module(eircd_listener).
 -export([listen/1]).
 
 listen(Port) ->
@@ -13,5 +13,6 @@ listen(Port) ->
 
 accept(ListeningSocket) ->
 	{ok, AcceptedSocket} = gen_tcp:accept(ListeningSocket),
-	spawn(connector, handle_connection, [AcceptedSocket]),
+	HandlerPid = spawn(eircd_connector, handle_connection, [AcceptedSocket]),
+	ok = gen_tcp:controlling_process(AcceptedSocket, HandlerPid),
 	accept(ListeningSocket).
