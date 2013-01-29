@@ -1,5 +1,5 @@
 -module(eircd_connector).
--export([handle_connection/1, send_server_message/3, send_user_message/3]).
+-export([handle_connection/1, send_server_message/3, send_user_message/4]).
 -include("common.hrl").
 
 handle_connection(Socket) ->
@@ -34,6 +34,7 @@ handle_request(Request, Socket) ->
 	eircd_commands:handle_command(Command, User, ArgStr).
 
 delete_user(Socket) ->
+	%also remove user from channel (abstract all this away)
 	User = get_user_from_socket(Socket),
 	eircd_users:delete(User).
 
@@ -58,10 +59,10 @@ send_server_message(User, Code, Message) ->
 	Payload = ":"++?SERVER_HOSTNAME++" "++CodeStr++" "++Nickname++" "++Message,
 	send(Socket, Payload).
 
-send_user_message(User, Command, Message) ->
-	Socket = User#user.socket,
-	Nickname = User#user.nickname,
-	Username = User#user.username,
-	Hostname = User#user.hostname,
+send_user_message(Sender, Recipient, Command, Message) ->
+	Socket = Recipient#user.socket,
+	Username = Sender#user.username,
+	Nickname = Sender#user.nickname,
+	Hostname = Sender#user.hostname,
 	Payload = ":"++Nickname++"!"++Username++"@"++Hostname++" "++string:to_upper(Command)++" "++Message,
 	send(Socket, Payload).

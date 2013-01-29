@@ -93,7 +93,13 @@ handle_command("JOIN", User, ArgStr) ->
 	lists:foreach(fun(ChannelName) ->
 		Channel = eircd_channels:create(ChannelName),
 		eircd_channels:add_user(Channel, User),
-		eircd_connector:send_user_message(User, "JOIN", ":#"++ChannelName), %TODO this should actually go to every user in the channel, not just the one that joined
+		Channel2 = eircd_channels:find(ChannelName),
+		UserSockets = sets:to_list(Channel2#channel.users),
+		lists:foreach(fun(UserSocket) ->
+			ChannelUser = eircd_users:find_by_socket(UserSocket),
+			%TODO this should actually go to every user in the channel, not just the one that joined
+			eircd_connector:send_user_message(User, ChannelUser, "JOIN", ":#"++ChannelName)
+		end, UserSockets),
 		handle_command("NAMES", User, [$#|ChannelName])
 	end, ChannelNames);
 
@@ -146,18 +152,18 @@ handle_command("NAMES", User, ArgStr) ->
 			eircd_connector:send_server_message(User, ?IRC_NAMES_END, "#"++ChannelName++" :End of /NAMES list.")
 	end;
 
-handle_command("PRIVMSG", User, ArgStr) ->
+handle_command("PRIVMSG", Sender, ArgStr) ->
 	case eircd_helpers:split(ArgStr, 2) of
 		[[$#|ChannelName], [$:|Body]] ->
 			Channel = eircd_channels:find(ChannelName),
-			UserSockets = sets:to_list(sets:del_element(User#user.socket, Channel#channel.users)),
+			UserSockets = sets:to_list(sets:del_element(Sender#user.socket, Channel#channel.users)),
 			lists:foreach(fun(UserSocket) ->
 				Recipient = eircd_users:find_by_socket(UserSocket),
-				eircd_connector:send_user_message(Recipient, "PRIVMSG", "#"++ChannelName++" :"++Body)
+				eircd_connector:send_user_message(Sender, Recipient, "PRIVMSG", "#"++ChannelName++" :"++Body)
 			end, UserSockets);
 		[Nickname,Body] ->
 			Recipient = eircd_users:find_by_nickname(Nickname),
-			eircd_connector:send_user_message(Recipient, "PRIVMSG", User#user.nickname++" :"++Body)
+			eircd_connector:send_user_message(Sender, Recipient, "PRIVMSG", Sender#user.nickname++" :"++Body)
 	end;
 
 handle_command(UnknownCommand, User, _) ->
