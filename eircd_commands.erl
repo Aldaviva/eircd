@@ -149,11 +149,13 @@ handle_command("NAMES", User, ArgStr) ->
 			end, UserSockets),
 			[$\s|UserNamesStr] = lists:concat(UserNames),
 			eircd_connector:send_server_message(User, ?IRC_NAMES_BODY, "= #"++ChannelName++" :"++UserNamesStr),
-			eircd_connector:send_server_message(User, ?IRC_NAMES_END, "#"++ChannelName++" :End of /NAMES list.")
+			eircd_connector:send_server_message(User, ?IRC_NAMES_END, "#"++ChannelName++" :End of /NAMES list.");
+		_ ->
+			eircd_connector:send_server_message(User, ?IRC_ERROR, "/NAMES: No channel defined.")
 	end;
 
 handle_command("PRIVMSG", Sender, ArgStr) ->
-	case eircd_helpers:split(ArgStr, 2) of
+	case eircd_helpers:split(ArgStr, 2) of % doesen't work
 		[[$#|ChannelName], [$:|Body]] ->
 			Channel = eircd_channels:find(ChannelName),
 			UserSockets = sets:to_list(sets:del_element(Sender#user.socket, Channel#channel.users)),
@@ -161,7 +163,7 @@ handle_command("PRIVMSG", Sender, ArgStr) ->
 				Recipient = eircd_users:find_by_socket(UserSocket),
 				eircd_connector:send_user_message(Sender, Recipient, "PRIVMSG", "#"++ChannelName++" :"++Body)
 			end, UserSockets);
-		[Nickname,Body] ->
+		[[Nickname], [Body]] ->
 			Recipient = eircd_users:find_by_nickname(Nickname),
 			eircd_connector:send_user_message(Sender, Recipient, "PRIVMSG", Sender#user.nickname++" :"++Body)
 	end;

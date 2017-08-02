@@ -8,8 +8,10 @@ start(PortStr) ->
 	create_users_table(),
 	create_channels_table(),
 	start_listener(list_to_integer(PortStr)),
+	io:format("Eircd (exo) server: started, pid: ~p~n", [self()]),
 	receive
 		quit ->
+			io:format("Eircd (exo) server: shutdown."),
 			ok
 	end.
 
