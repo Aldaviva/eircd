@@ -5,10 +5,10 @@ listen(Port) ->
 	SocketOptions = [binary, { active, false }, { packet, 0 }],
 	case gen_tcp:listen(Port, SocketOptions) of
 		{ok, ListeningSocket} ->
-			io:format("Eircd server: Listening on port ~p~n", [Port]),
+			io:format("Listening on port ~p~n", [Port]),
 			accept(ListeningSocket);
 		Error ->
-			io:format("Eircd server: Can't listen to socket: ~p~n", [Error])
+			io:format("Can't listen to socket: ~p~n", [Error])
 	end.
 
 accept(ListeningSocket) ->
